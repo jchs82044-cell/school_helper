@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>학교생활 도우미</title>
+<style>
+  :root { --c:#3b82f6; --bg:#f3f6fb; --card:#fff; --t:#1f2937; --m:#6b7280; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Malgun Gothic",system-ui,sans-serif; background:var(--bg); color:var(--t); }
+  header { background:var(--c); color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  header h1 { margin:0; font-size:20px; }
+  main { max-width:900px; margin:0 auto; padding:16px; }
+  .card { background:var(--card); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 4px #0001; }
+  h2 { margin:0 0 12px; font-size:18px; }
+  button { background:var(--c); color:#fff; border:0; border-radius:8px; padding:8px 14px; cursor:pointer; font-size:14px; }
+  button.sub { background:#e5e7eb; color:var(--t); }
+  input, select { padding:8px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .hidden { display:none; }
+  .banner { background:#fef3c7; border:1px solid #f59e0b; border-radius:10px; padding:12px 16px; margin-bottom:16px; }
+  .banner b { display:block; margin-bottom:4px; }
+  table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  th, td { border:1px solid #e5e7eb; padding:4px; text-align:center; }
+  th { background:#eff6ff; }
+  td input { width:100%; border:0; text-align:center; padding:12px 2px; font-size:15px; background:transparent; }
+  .hole { height:90px; font-size:42px; background:#e5e7eb; border-radius:12px; padding:0; }
+  ul.ev li.pin { background:#eff6ff; }
+  .dd { font-weight:bold; color:#2563eb; margin-right:6px; }
+  ul.ev li .acts { display:flex; gap:4px; }
+  ul.ev li button.star { background:#e5e7eb; color:#111; }
+  #ddCard { background:#eff6ff; border:1px solid #93c5fd; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:16px; }
+  .tabs { display:flex; gap:8px; margin-bottom:16px; }
+  .tabs button { flex:1; background:#e5e7eb; color:var(--t); }
+  .tabs button.on { background:var(--c); color:#fff; }
+  .meal { border-top:1px solid #e5e7eb; padding:10px 0; }
+  .meal h3 { margin:0 0 4px; font-size:15px; }
+  .meal span.tag { display:inline-block; background:#dbeafe; border-radius:6px; padding:1px 8px; font-size:12px; margin-right:4px; }
+  .meal.석식 span.tag { background:#fde68a; }
+  .muted { color:var(--m); font-size:13px; }
+  ul.ev { list-style:none; padding:0; margin:12px 0 0; }
+  ul.ev li { display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid #f0f0f0; }
+  ul.ev li button { padding:2px 8px; font-size:12px; background:#ef4444; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏫 학교생활 도우미</h1>
+  <div class="row"><span id="who"></span><button class="sub hidden" id="changeGrade">학년 변경</button></div>
+</header>
+<main>
+  <div id="banner"></div>
+  <div id="ddCard" class="hidden"></div>
+
+  <section class="card" id="gradeView">
+    <h2>학년을 입력해 주세요</h2>
+    <div class="row">
+      <select id="gradeSel"><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select>
+      <button id="gradeOk">확인</button>
+    </div>
+  </section>
+
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <button id="tabT" class="on">📅 시간표 · 일정</button>
+      <button id="tabM">🍱 급식 카탈로그</button>
+      <button id="tabG">🎮 미니게임</button>
+    </div>
+
+    <div id="paneT">
+      <section class="card">
+        <h2>시간표 <span class="muted">(칸을 눌러 과목을 입력·수정하면 자동 저장)</span></h2>
+        <table id="tt"></table>
+        <div class="row" style="margin-top:10px"><button class="sub" id="ttReset">시간표 초기화</button></div>
+      </section>
+      <section class="card">
+        <h2>학교 일정 알림</h2>
+        <div class="row">
+          <input type="date" id="evDate"><input type="text" id="evName" placeholder="일정 이름 (예: 수행평가)">
+          <button id="evAdd">추가</button>
+          <button class="sub" id="notiBtn">🔔 브라우저 알림 허용</button>
+          <button class="sub" id="syncBtn">📥 학사일정 불러오기</button>
+        </div>
+        <p class="muted" id="syncMsg">⭐을 누르면 해당 일정이 D-day로 상단에 표시돼요.</p>
+        <p class="muted">일정 당일 아침(접속 시)에 알려 드려요.</p>
+        <ul class="ev" id="evList"></ul>
+      </section>
+    </div>
+
+    <div id="paneM" class="hidden">
+      <section class="card">
+        <h2>급식 카탈로그 <span class="muted">종촌고등학교 · 중식/석식</span></h2>
+        <div class="row">
+          <input type="date" id="from"> ~ <input type="date" id="to">
+          <button id="mealGo">조회</button>
+        </div>
+        <div id="meals" style="margin-top:12px"></div>
+      </section>
+    </div>
+
+    <div id="paneG" class="hidden">
+      <section class="card">
+        <h2>⚡ 반응속도 테스트 <span class="muted">최고 기록: <b id="bestR">-</b></span></h2>
+        <div id="rBox" style="background:#3b82f6;color:#fff;border-radius:12px;padding:40px 10px;text-align:center;cursor:pointer;user-select:none;font-size:18px">클릭해서 시작</div>
+      </section>
+      <section class="card">
+        <h2>🍚 급식 먹기 게임 <span class="muted">최고 점수: <b id="bestM">-</b></span></h2>
+        <p class="muted">20초 동안 나타나는 음식을 눌러 먹어요! 점수 <b id="mScore">0</b> · 남은 시간 <b id="mLeft">20</b></p>
+        <div id="moleGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:320px"></div>
+        <div style="margin-top:10px"><button id="moleStart">시작</button></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+const ATPT = "I10", SCHUL = "9300180";
+const DAYS = ["월","화","수","목","금"], PERIODS = 7;
+const $ = id => document.getElementById(id);
+const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ymd = d => d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0");
+const iso = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+
+let grade = load("grade", null);
+
+// 키 없는 NEIS API는 한 번에 5건만 반환하므로, 5건이 오면 기간을 반으로 쪼개 다시 요청
+async function neisRange(svc, fk, tk, from, to) {
+  const dt = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const a = dt(from), b = dt(to);
+  const q = async (x, y) => {
+    const url = `https://open.neis.go.kr/hub/${svc}?Type=json&ATPT_OFCDC_SC_CODE=${ATPT}&SD_SCHUL_CODE=${SCHUL}&${fk}=${ymd(x)}&${tk}=${ymd(y)}`;
+    const j = await (await fetch(url)).json();
+    const rows = j[svc] && j[svc][1] && j[svc][1].row || [];
+    const days = Math.round((y - x) / 864e5);
+    if (rows.length < 5 || days < 1) return rows;
+    const mid = new Date(x.getFullYear(), x.getMonth(), x.getDate() + Math.floor(days / 2));
+    const next = new Date(mid.getFullYear(), mid.getMonth(), mid.getDate() + 1);
+    return (await Promise.all([q(x, mid), q(next, y)])).flat();
+  };
+  return q(a, b);
+}
+
+function showApp() {
+  const on = !!grade;
+  $("gradeView").classList.toggle("hidden", on);
+  $("app").classList.toggle("hidden", !on);
+  $("changeGrade").classList.toggle("hidden", !on);
+  $("who").textContent = on ? grade + "학년" : "";
+  if (on) { renderTT(); renderEvents(); checkToday(); }
+}
+$("gradeOk").onclick = () => { grade = +$("gradeSel").value; save("grade", grade); showApp(); };
+$("changeGrade").onclick = () => { grade = null; localStorage.removeItem("grade"); showApp(); };
+
+// 시간표 (학년별로 따로 저장)
+function renderTT() {
+  const data = load("tt" + grade, {});
+  let h = "<tr><th></th>" + DAYS.map(d => `<th>${d}</th>`).join("") + "</tr>";
+  for (let p = 1; p <= PERIODS; p++) {
+    h += `<tr><th>${p}교시</th>` + DAYS.map((d, i) =>
+      `<td><input data-k="${i}-${p}" value="${esc(data[i+"-"+p] || "")}" maxlength="10"></td>`).join("") + "</tr>";
+  }
+  $("tt").innerHTML = h;
+  $("tt").querySelectorAll("input").forEach(inp => inp.oninput = () => {
+    const d = load("tt" + grade, {}); d[inp.dataset.k] = inp.value; save("tt" + grade, d);
+  });
+}
+$("ttReset").onclick = () => { if (confirm("시간표를 모두 지울까요?")) { localStorage.removeItem("tt" + grade); renderTT(); } };
+
+// 일정 + 당일 아침 알림
+const events = () => load("events", []);
+const sortEv = l => l.sort((a, b) => a.date.localeCompare(b.date));
+function dday(date) {
+  const n = new Date(); const t = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  const [y, m, d] = date.split("-").map(Number);
+  const diff = Math.round((new Date(y, m - 1, d) - t) / 864e5);
+  return diff === 0 ? "D-Day" : diff > 0 ? "D-" + diff : "D+" + (-diff);
+}
+function renderEvents() {
+  const list = sortEv(events());
+  $("evList").innerHTML = list.length ? list.map((e, i) =>
+    `<li class="${e.pin ? "pin" : ""}"><span><span class="dd">${dday(e.date)}</span>${e.date} · ${esc(e.name)}</span><span class="acts"><button class="star" data-s="${i}">${e.pin ? "⭐" : "☆"}</button><button data-i="${i}">삭제</button></span></li>`).join("")
+    : '<li class="muted">등록된 일정이 없어요.</li>';
+  $("evList").querySelectorAll("button[data-i]").forEach(b => b.onclick = () => {
+    const l = sortEv(events()); l.splice(+b.dataset.i, 1); save("events", l); renderEvents(); checkToday();
+  });
+  $("evList").querySelectorAll("button[data-s]").forEach(b => b.onclick = () => {
+    const l = sortEv(events()), e = l[+b.dataset.s]; const was = e.pin;
+    l.forEach(x => x.pin = false); e.pin = !was; save("events", l); renderEvents();
+  });
+  const p = list.find(e => e.pin), c = $("ddCard");
+  c.classList.toggle("hidden", !p);
+  if (p) c.innerHTML = `⭐ <b>${esc(p.name)}</b> <span class="dd">${dday(p.date)}</span> (${p.date})`;
+}
+$("syncBtn").onclick = async () => {
+  const msg = $("syncMsg"), n = new Date();
+  const y = n.getMonth() < 2 ? n.getFullYear() - 1 : n.getFullYear();
+  msg.textContent = "불러오는 중…";
+  try {
+    const rows = (await neisRange("SchoolSchedule", "AA_FROM_YMD", "AA_TO_YMD", `${y}-03-01`, `${y + 1}-02-28`)).filter(r => {
+      const f = [r.ONE_GRADE_EVENT_YN, r.TW_GRADE_EVENT_YN, r.THREE_GRADE_EVENT_YN][grade - 1];
+      return f === "Y" && r.EVENT_NM !== "토요휴업일";
+    });
+    const l = events().filter(e => !(e.school && e.date < iso(n))); let added = 0;
+    rows.forEach(r => {
+      const a = r.AA_YMD, date = `${a.slice(0,4)}-${a.slice(4,6)}-${a.slice(6)}`;
+      if (date < iso(n)) return;
+      if (!l.some(e => e.date === date && e.name === r.EVENT_NM)) { l.push({ date, name: r.EVENT_NM, school: true }); added++; }
+    });
+    save("events", l); renderEvents(); checkToday();
+    msg.textContent = rows.length ? `학사일정 ${added}건을 추가했어요. ⭐을 누르면 D-day로 표시돼요.` : "불러올 학사일정이 없어요.";
+  } catch (e) { msg.textContent = "학사일정을 불러오지 못했어요. 인터넷 연결을 확인해 주세요."; }
+};
+$("evAdd").onclick = () => {
+  const date = $("evDate").value, name = $("evName").value.trim();
+  if (!date || !name) return alert("날짜와 일정 이름을 입력해 주세요.");
+  const l = events(); l.push({ date, name }); save("events", l);
+  $("evName").value = ""; renderEvents(); checkToday();
+};
+$("notiBtn").onclick = async () => {
+  if (!("Notification" in window)) return alert("이 브라우저는 알림을 지원하지 않아요.");
+  const r = await Notification.requestPermission();
+  alert(r === "granted" ? "알림이 허용되었어요." : "알림이 허용되지 않았어요. 화면 배너로는 계속 알려 드려요.");
+};
+function checkToday() {
+  const now = new Date(), today = iso(now);
+  const items = events().filter(e => e.date === today);
+  // 아침(오전 5시~12시)에만 알림
+  const morning = now.getHours() >= 5 && now.getHours() < 12;
+  const box = $("banner");
+  if (!items.length || !morning) { box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="banner"><b>⏰ 오늘 학교 일정</b>${items.map(e => "• " + esc(e.name)).join("<br>")}</div>`;
+  const key = "notified" + today;
+  if (!localStorage.getItem(key) && "Notification" in window && Notification.permission === "granted") {
+    new Notification("오늘 학교 일정", { body: items.map(e => e.name).join(", ") });
+    localStorage.setItem(key, "1");
+  }
+}
+
+// 탭
+function tab(m) {
+  $("paneT").classList.toggle("hidden", m !== 0);
+  $("paneM").classList.toggle("hidden", m !== 1);
+  $("paneG").classList.toggle("hidden", m !== 2);
+  $("tabT").classList.toggle("on", m === 0);
+  $("tabM").classList.toggle("on", m === 1);
+  $("tabG").classList.toggle("on", m === 2);
+  if (m === 1 && !$("meals").innerHTML) fetchMeals();
+  if (m !== 2) stopMole();
+}
+$("tabT").onclick = () => tab(0);
+$("tabM").onclick = () => tab(1);
+$("tabG").onclick = () => tab(2);
+
+// 미니게임
+const best = (k) => load("best" + k, null);
+function showBest() {
+  const r = best("react"), m = best("mole");
+  $("bestR").textContent = r ? r + "ms" : "-";
+  $("bestM").textContent = m ? m + "점" : "-";
+}
+let rState = "idle", rTimer, rStart;
+$("rBox").onclick = () => {
+  const b = $("rBox");
+  if (rState === "idle") {
+    rState = "wait"; b.style.background = "#ef4444"; b.textContent = "초록색이 되면 클릭!";
+    rTimer = setTimeout(() => { rState = "go"; rStart = performance.now(); b.style.background = "#22c55e"; b.textContent = "지금!"; }, 1500 + Math.random() * 2500);
+  } else if (rState === "wait") {
+    clearTimeout(rTimer); rState = "idle"; b.style.background = "#f59e0b"; b.textContent = "너무 일찍 눌렀어요! 다시 시작하려면 클릭";
+  } else {
+    const t = Math.round(performance.now() - rStart); rState = "idle"; b.style.background = "#3b82f6";
+    const old = best("react"); let note = "";
+    if (!old || t < old) { save("bestreact", t); note = " 🏆 신기록!"; }
+    b.textContent = t + "ms" + note + " · 다시 하려면 클릭"; showBest();
+  }
+};
+let mTimer, mTick, mScore = 0, mLeft = 0, mActive = -1;
+function stopMole() { clearInterval(mTimer); clearTimeout(mTick); mActive = -1; }
+function buildMole() {
+  $("moleGrid").innerHTML = Array.from({ length: 9 }, (_, i) => `<button class="hole" data-i="${i}"></button>`).join("");
+  $("moleGrid").querySelectorAll(".hole").forEach(h => h.onclick = () => {
+    if (+h.dataset.i === mActive && mLeft > 0) { mScore++; $("mScore").textContent = mScore; h.textContent = ""; mActive = -1; }
+  });
+}
+function popMole() {
+  const holes = $("moleGrid").children;
+  if (mActive >= 0) holes[mActive].textContent = "";
+  mActive = Math.floor(Math.random() * 9);
+  holes[mActive].textContent = ["🍚", "🍗", "🍕", "🍜"][Math.floor(Math.random() * 4)];
+  mTick = setTimeout(popMole, Math.max(450, 900 - mScore * 15));
+}
+$("moleStart").onclick = () => {
+  stopMole(); buildMole(); mScore = 0; mLeft = 20; $("mScore").textContent = 0; $("mLeft").textContent = mLeft;
+  $("moleStart").disabled = true; popMole();
+  mTimer = setInterval(() => {
+    $("mLeft").textContent = --mLeft;
+    if (mLeft <= 0) {
+      stopMole(); $("moleGrid").querySelectorAll(".hole").forEach(h => h.textContent = ""); $("moleStart").disabled = false;
+      const old = best("mole"); const nb = !old || mScore > old; if (nb) save("bestmole", mScore);
+      $("mLeft").textContent = "종료! " + (nb ? "🏆 신기록!" : ""); showBest();
+    }
+  }, 1000);
+};
+buildMole(); showBest();
+
+// 급식 (NEIS)
+const t0 = new Date(), t1 = new Date(); t1.setDate(t1.getDate() + 6);
+$("from").value = iso(t0); $("to").value = iso(t1);
+$("mealGo").onclick = fetchMeals;
+async function fetchMeals() {
+  const f = $("from").value, t = $("to").value, box = $("meals");
+  if (!f || !t || f > t) return box.innerHTML = '<p class="muted">기간을 올바르게 선택해 주세요.</p>';
+  box.innerHTML = '<p class="muted">불러오는 중…</p>';
+  try {
+    const rows = (await neisRange("mealServiceDietInfo", "MLSV_FROM_YMD", "MLSV_TO_YMD", f, t))
+      .filter(r => r.MMEAL_SC_NM === "중식" || r.MMEAL_SC_NM === "석식");
+    if (!rows.length) return box.innerHTML = '<p class="muted">해당 기간에 중식/석식 정보가 없어요.</p>';
+    const byDay = {};
+    rows.forEach(r => { (byDay[r.MLSV_YMD] = byDay[r.MLSV_YMD] || {})[r.MMEAL_SC_NM] = r.DDISH_NM; });
+    const fmt = s => s ? s.split(/<br\s*\/?>/i).map(x => esc(x.replace(/\s*\([\d.]+\)/g, "").trim())).filter(Boolean).join(" · ") : null;
+    box.innerHTML = Object.keys(byDay).sort().map(d => {
+      const day = byDay[d], wd = "일월화수목금토"[new Date(+d.slice(0,4), +d.slice(4,6) - 1, +d.slice(6)).getDay()];
+      const part = n => `<div style="margin-top:6px"><span class="tag" style="${n === "석식" ? "background:#fde68a" : ""}">${n === "석식" ? "🌙 석식" : "☀️ 중식"}</span> ${fmt(day[n]) || '<span class="muted">급식 없음</span>'}</div>`;
+      return `<div class="meal"><h3>${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6)} (${wd})</h3>${part("중식")}${part("석식")}</div>`;
+    }).join("");
+  } catch (e) {
+    box.innerHTML = '<p class="muted">급식 정보를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.</p>';
+  }
+}
+
+showApp();
+</script>
+</body>
+</html>
